@@ -21,6 +21,7 @@ class Tokenizer:
             model_path (str): The path to the SentencePiece model file.
         """
         # reload tokenizer
+        print(f"model_path: {model_path}")
         assert os.path.isfile(model_path), model_path
         self.sp_model = SentencePieceProcessor(model_file=model_path)
         logger.info(f"Reloaded SentencePiece model from {model_path}")
