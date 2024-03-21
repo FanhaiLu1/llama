@@ -230,8 +230,7 @@ class Llama:
             out_logprobs.append(probs)
         print("\n==================================  prompt_tokens: \n")
         for p in prompt_tokens:
-            text = "".join(p)
-            print(f"{text}")
+            print(f"{p}")
             
         print("\n================================== out_tokens: \n")  
         for t in out_tokens:
