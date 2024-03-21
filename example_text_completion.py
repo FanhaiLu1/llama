@@ -47,8 +47,10 @@ def main(
         top_p=top_p,
     )
     for prompt, result in zip(prompts, results):
+        print("\n================================== prompts: \n")
         print(prompt)
-        print(f"> {result['generation']}")
+        print("\n================================== outputs: \n")
+        print(f"{result['generation']}")
         print("\n==================================\n")
 
 
