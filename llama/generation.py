@@ -228,6 +228,13 @@ class Llama:
                 probs = probs[:eos_idx] if logprobs else None
             out_tokens.append(toks)
             out_logprobs.append(probs)
+        print("\n==================================  prompt_tokens: \n")
+        for p in prompt_tokens:
+            print(f"{"".join(p)}")
+            
+        print("\n================================== out_tokens: \n")  
+        for t in out_tokens:
+            print(f"{t}")
         return (out_tokens, out_logprobs if logprobs else None)
 
     def text_completion(
