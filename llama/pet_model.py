@@ -170,7 +170,6 @@ class Transformer(nn.Module):
       self,
       tokens: torch.Tensor,
       start_pos: int,
-      mask,
   ):
 
     seqlen = tokens.shape[-1]
