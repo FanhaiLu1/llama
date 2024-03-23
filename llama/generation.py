@@ -155,6 +155,7 @@ class Llama:
             If logprobs is True, token log probabilities are computed for each generated token.
 
         """
+        print(f"\n================================== temperature: {temperature} \n")
         params = self.model.params
         bsz = len(prompt_tokens)
         assert bsz <= params.max_batch_size, (bsz, params.max_batch_size)
@@ -221,9 +222,11 @@ class Llama:
             probs = None
             if logprobs:
                 probs = token_logprobs[i][start : len(prompt_tokens[i]) + max_gen_len]
+            print(f"\n================================== toks length: {len(toks)}\n")  
             # cut to eos tok if any
             if self.tokenizer.eos_id in toks:
                 eos_idx = toks.index(self.tokenizer.eos_id)
+                print(f"\n================================== toks eos_idx: {eos_idx}\n")
                 toks = toks[:eos_idx]
                 probs = probs[:eos_idx] if logprobs else None
             out_tokens.append(toks)

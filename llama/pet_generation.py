@@ -184,7 +184,7 @@ class PetLlama:
                 ignore_index=pad_id,
             )
 
-        print(f"\n================================== temperature: {temperature}\n")
+        print(f"\n================================== temperature: {temperature} \n")
         for cur_pos in range(min_prompt_len, total_len):
             logits = self.model.forward(tokens[:, prev_pos:cur_pos], prev_pos)
             if temperature > 0:
@@ -223,7 +223,7 @@ class PetLlama:
             probs = None
             if logprobs:
                 probs = token_logprobs[i][start : len(prompt_tokens[i]) + max_gen_len]
-            print(f"\n================================== toks length: {len(toks)}\n")    
+            print(f"\n================================== pet toks length: {len(toks)}\n")    
             # cut to eos tok if any
             if self.tokenizer.eos_id in toks:
                 eos_idx = toks.index(self.tokenizer.eos_id)

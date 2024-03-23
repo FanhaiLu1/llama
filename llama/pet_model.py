@@ -159,10 +159,10 @@ class Transformer(nn.Module):
         self.params.dim // self.params.n_heads, self.params.max_seq_len * 2
     )
     # added
-    self.freqs_cis = freqs_cis 
+    #self.freqs_cis = freqs_cis 
 
     # changed
-    ## self.register_buffer("freqs_cis", freqs_cis)
+    self.register_buffer("freqs_cis", freqs_cis)
 
 
   @torch.no_grad()
