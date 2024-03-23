@@ -161,7 +161,8 @@ class Transformer(nn.Module):
     # added
     self.freqs_cis = freqs_cis 
 
-    self.register_buffer("freqs_cis", freqs_cis)
+    # changed
+    ## self.register_buffer("freqs_cis", freqs_cis)
 
 
   @torch.no_grad()
