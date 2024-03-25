@@ -131,102 +131,50 @@ class Attention(nn.Module):
   def forward(
       self,
       x: torch.Tensor,
-      start_pos: int,
       freqs_cis: torch.Tensor,
       mask: Optional[torch.Tensor],
+      cache,
   ):
-      """
-      Forward pass of the attention module.
-
-      Args:
-          x (torch.Tensor): Input tensor.
-          start_pos (int): Starting position for caching.
-          freqs_cis (torch.Tensor): Precomputed frequency tensor.
-          mask (torch.Tensor, optional): Attention mask tensor.
-
-      Returns:
-          torch.Tensor: Output tensor after attention.
-
-      """
-      bsz, seqlen, _ = x.shape
-      xq, xk, xv = self.wq(x), self.wk(x), self.wv(x)
-
-      xq = xq.view(bsz, seqlen, self.n_local_heads, self.head_dim)
-      xk = xk.view(bsz, seqlen, self.n_local_kv_heads, self.head_dim)
-      xv = xv.view(bsz, seqlen, self.n_local_kv_heads, self.head_dim)
-
-      xq, xk = apply_rotary_emb(xq, xk, freqs_cis=freqs_cis)
-
-      self.cache_k = self.cache_k.to(xq)
-      self.cache_v = self.cache_v.to(xq)
-
-      self.cache_k[:bsz, start_pos : start_pos + seqlen] = xk
-      self.cache_v[:bsz, start_pos : start_pos + seqlen] = xv
-
-      keys = self.cache_k[:bsz, : start_pos + seqlen]
-      values = self.cache_v[:bsz, : start_pos + seqlen]
-
-      # repeat k/v heads if n_kv_heads < n_heads
-      keys = repeat_kv(keys, self.n_rep)  # (bs, cache_len + seqlen, n_local_heads, head_dim)
-      values = repeat_kv(values, self.n_rep)  # (bs, cache_len + seqlen, n_local_heads, head_dim)
-
-      xq = xq.transpose(1, 2)  # (bs, n_local_heads, seqlen, head_dim)
-      keys = keys.transpose(1, 2) # (bs, n_local_heads, cache_len + seqlen, head_dim)
-      values = values.transpose(1, 2) # (bs, n_local_heads, cache_len + seqlen, head_dim)
-      scores = torch.matmul(xq, keys.transpose(2, 3)) / math.sqrt(self.head_dim)
-      if mask is not None:
-          scores = scores + mask  # (bs, n_local_heads, seqlen, cache_len + seqlen)
-      scores = F.softmax(scores.float(), dim=-1).type_as(xq)
-      output = torch.matmul(scores, values)  # (bs, n_local_heads, seqlen, head_dim)
-      output = output.transpose(1, 2).contiguous().view(bsz, seqlen, -1)
-      return self.wo(output)
-  # def forward(
-  #     self,
-  #     x: torch.Tensor,
-  #     freqs_cis: torch.Tensor,
-  #     mask: Optional[torch.Tensor],
-  # ):
-  #   # bsz, seqlen, _ = x.shape
+    # bsz, seqlen, _ = x.shape
     
-  #   bsz, seqlen = x.shape[0], x.shape[-2]
+    bsz, seqlen = x.shape[0], x.shape[-2]
 
-
-  #   xq, xk, xv = self.wq(x), self.wk(x), self.wv(x)
-  #   xq = xq.view(bsz, seqlen, self.n_local_heads, self.head_dim)
-  #   xk = xk.view(bsz, seqlen, self.n_local_kv_heads, self.head_dim)
-  #   xv = xv.view(bsz, seqlen, self.n_local_kv_heads, self.head_dim)
+    xq, xk, xv = self.wq(x), self.wk(x), self.wv(x)
+    xq = xq.view(bsz, seqlen, self.n_local_heads, self.head_dim)
+    xk = xk.view(bsz, seqlen, self.n_local_kv_heads, self.head_dim)
+    xv = xv.view(bsz, seqlen, self.n_local_kv_heads, self.head_dim)
     
 
     
-  #   xq, xk = apply_rotary_emb(xq, xk, freqs_cis=freqs_cis)
+    xq, xk = apply_rotary_emb(xq, xk, freqs_cis=freqs_cis)
 
-  #   xk = xk.transpose(-3, -2)
-  #   xv = xv.transpose(-3, -2)
+    xk = xk.transpose(1, 2)
+    xv = xv.transpose(1, 2)
 
-  #   if seqlen == 1:
-  #       xq = torch.broadcast_to(xq, (xq.shape[0], 2, xq.shape[2], xq.shape[3])) 
+    if seqlen == 1:
+        xq = torch.broadcast_to(xq, (xq.shape[0], 2, xq.shape[2], xq.shape[3])) 
 
-  #   #if not self.env.enable_kv_quantization:
-  #   keys, values = cache.update(xk, xv)
+    #if not self.env.enable_kv_quantization:
+    keys, values = cache.update(xk, xv)
 
-  #   ## Attention start
-  #   scores = torch.einsum("ijkl,ikml->ikjm", xq, keys) / math.sqrt(self.head_dim)
-  #   #scores = torch_xla2.extra.call_jax(jnp.einsum, "ijkl,ikml->ikjm", xq, keys) / math.sqrt(self.head_dim)
+    ## Attention start
+    scores = torch.einsum("ijkl,ikml->ikjm", xq, keys) / math.sqrt(self.head_dim)
+    #scores = torch_xla2.extra.call_jax(jnp.einsum, "ijkl,ikml->ikjm", xq, keys) / math.sqrt(self.head_dim)
 
-  #   if mask is not None:
-  #       scores = scores + mask  # (bs, n_local_heads, seqlen, max_seqlen)
+    if mask is not None:
+        scores = scores + mask  # (bs, n_local_heads, seqlen, max_seqlen)
 
-  #   scores = F.softmax(scores.float(), dim=-1).type_as(xq)
+    scores = F.softmax(scores.float(), dim=-1).type_as(xq)
 
-  #   output = torch.einsum(
-  #       "ikjm,ikml->ikjl", scores, values
-  #   )  # (bs, n_local_heads, seqlen, head_dim)
-  #   #output = torch_xla2.extra.call_jax(jnp.einsum,"ikjm,ikml->ikjl", scores, values)
-  #   # For XLA matmul performance boost
-  #   if seqlen == 1:
-  #       output = output[:, :, 0, :]
-  #   #output = torch.matmul(scores, values)
-  #   output = output.transpose(-3, -2).contiguous().view(bsz, seqlen, -1)
-  #   return self.wo(output)
+    output = torch.einsum(
+        "ikjm,ikml->ikjl", scores, values
+    )  # (bs, n_local_heads, seqlen, head_dim)
+    #output = torch_xla2.extra.call_jax(jnp.einsum,"ikjm,ikml->ikjl", scores, values)
+    # For XLA matmul performance boost
+    if seqlen == 1:
+        output = output[:, :, 0, :]
+    #output = torch.matmul(scores, values)
+    output = output.transpose(-3, -2).contiguous().view(bsz, seqlen, -1)
+    return self.wo(output)
 
     

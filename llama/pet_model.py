@@ -90,16 +90,16 @@ class TransformerBlock(nn.Module):
   def forward(
       self,
       x: torch.Tensor,
-      start_pos: int,
       freqs_cis: torch.Tensor,
       mask: Optional[torch.Tensor],
+      cache
   ):
 
     attn = self.attention.forward(
         self.attention_norm(x),
-        start_pos,
         freqs_cis,
-        mask
+        mask,
+        cache
     )
 
     h = x + attn
@@ -169,41 +169,23 @@ class Transformer(nn.Module):
   def forward(
       self,
       tokens: torch.Tensor,
-      start_pos: int,
+      input_pos: torch.Tensor,
+      caches: List[Any],
+      mask,
   ):
 
     seqlen = tokens.shape[-1]
     h = self.tok_embeddings(tokens)
 
-    # changed
-    # freqs_cis = self.freqs_cis[input_pos]
-    freqs_cis = self.freqs_cis[start_pos : start_pos + seqlen]
-
-    # changed
-    mask = None
-    if seqlen > 1:
-        mask = torch.full(
-            (seqlen, seqlen), float("-inf"), device=tokens.device
-        )
-
-        mask = torch.triu(mask, diagonal=1)
-
-        # When performing key-value caching, we compute the attention scores
-        # only for the new sequence. Thus, the matrix of scores is of size
-        # (seqlen, cache_len + seqlen), and the only masked entries are (i, j) for
-        # j > cache_len + i, since row i corresponds to token cache_len + i.
-        mask = torch.hstack([
-            torch.zeros((seqlen, start_pos), device=tokens.device),
-            mask
-        ]).type_as(h)
-    # ----->    
+    freqs_cis = self.freqs_cis[input_pos]
+    #freqs_cis = self.freqs_cis[start_pos : start_pos + seqlen]
 
     for layer in self.layers:
         h = layer(
             h,
-            start_pos,
             freqs_cis,
             mask,
+            caches
         )
 
     h = self.norm(h)

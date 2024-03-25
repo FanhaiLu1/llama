@@ -19,6 +19,7 @@ from fairscale.nn.model_parallel.initialize import (
 from llama.pet_model import Transformer
 from llama.model_args import ModelArgs
 from llama.tokenizer import Tokenizer
+from llama.cache_manager import KVCachePrefill, KVCacheGenerate
 
 Role = Literal["system", "user", "assistant"]
 
@@ -183,10 +184,59 @@ class PetLlama:
                 reduction="none",
                 ignore_index=pad_id,
             )
+        
+        #prefill 
+        prefill_caches = [KVCachePrefill() for _ in self.model.layers]
+        input_indexes = torch.arange(0, min_prompt_len)
+        mask = torch.full((1, 1, min_prompt_len, min_prompt_len), 
+                     float('-inf'), dtype=torch.bfloat16)
+        mask = torch.triu(mask, k=1)
+        prefill_tokens = tokens[:, 0:min_prompt_len]
 
+        logits = self.model.forward(prefill_tokens, input_indexes, prefill_caches, mask)
+
+        next_token = torch.argmax(logits[:, -1], dim=-1)
+        next_token = next_token.reshape(-1)
+        print(f"\n================================== first next_token: {next_token} \n")
+        tokens[:, min_prompt_len] = next_token
+        prefill_caches = [c.state() for c in prefill_caches]
+        print(f"\n==================================  prefill_caches: {prefill_caches} \n")
+
+        # insert
+        
+        
+        # cache
+        n_local_kv_heads = params.n_heads
+        head_dim = params.dim // params.n_heads
+        shape = (params.max_batch_size, n_local_kv_heads, params.max_seq_len, head_dim)
+        caches = []
+        for _ in self.model.layers:
+            caches.append(KVCacheGenerate.empty(shape, device="cuda"))
+        caches = [c.state() for c in caches]
+        
+        #
+        pos = min_prompt_len
+        slot = 0
+        def insert(cache, new_entry):
+          #x, y, z, q = torch.shape(cache)
+          #zeros = torch.zeros(shape=(1, y, z, q), dtype=torch.bfloat16)
+          cache[slot, :, 0 : pos, :] = new_entry
+          return cache
+        caches = [
+            (insert(k, newk), insert(v, newv)) 
+            for (k, v), (newk, newv) in zip(caches, caches)
+            ]
+        print(f"\n================================== caches: {caches} \n") 
+
+       
         print(f"\n================================== temperature: {temperature} \n")
-        for cur_pos in range(min_prompt_len, total_len):
-            logits = self.model.forward(tokens[:, prev_pos:cur_pos], prev_pos)
+        prev_pos = min_prompt_len
+        for cur_pos in range(min_prompt_len + 1, total_len):
+            input_positions = torch.full((1,), cur_pos)
+            cache_position = torch.full((1,), cur_pos) 
+            caches = [ KVCacheGenerate(k, v, cache_position) for k, v in caches]
+            logits = self.model.forward(tokens[:, prev_pos:cur_pos], input_positions, caches, None)
+            caches = [c.state() for c in caches]
             if temperature > 0:
                 probs = torch.softmax(logits[:, -1] / temperature, dim=-1)
                 next_token = sample_top_p(probs, top_p)
