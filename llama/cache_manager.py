@@ -47,8 +47,8 @@ class KVCacheGenerate:
         self.pos = position
 
     def update(self, key, value):
-        self.cache_k = self.cache_k.at[:, :, self.pos].set(key)
-        self.cache_v = self.cache_v.at[:, :, self.pos].set(value)
+        self.cache_k = self.cache_k[:, :, self.pos] = key
+        self.cache_v = self.cache_v.at[:, :, self.pos] = value
         return self.cache_k, self.cache_v 
 
     def state(self):
