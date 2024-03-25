@@ -225,7 +225,7 @@ class PetLlama:
           return cache
         caches = [
             (insert(k, newk), insert(v, newv)) 
-            for (k, v), (newk, newv) in zip(caches, caches)
+            for (k, v), (newk, newv) in zip(caches, prefill_caches)
             ]
         print(f"\n================================== caches: {caches} \n") 
 
