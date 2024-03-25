@@ -40,13 +40,11 @@ class KVCacheGenerate:
         cache_k: torch.Tensor,  # previous cache
         cache_v: torch.Tensor,  # previous cache
         position: int,  # position to store the cache
-        sharding,
     ):
         super().__init__()
         self.cache_k = cache_k
         self.cache_v = cache_v
         self.pos = position
-        self.sharding = sharding
 
     def update(self, key, value):
         self.cache_k = self.cache_k.at[:, :, self.pos].set(key)
