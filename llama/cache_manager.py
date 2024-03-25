@@ -47,7 +47,9 @@ class KVCacheGenerate:
         self.pos = position
 
     def update(self, key, value):
+        key = key.to(torch.bfloat16)
         self.cache_k[:, :, self.pos] = key
+        value = value.to(torch.bfloat16)
         self.cache_v[:, :, self.pos] = value
         return self.cache_k, self.cache_v 
 
