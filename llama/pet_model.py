@@ -176,7 +176,6 @@ class Transformer(nn.Module):
 
     seqlen = tokens.shape[-1]
     h = self.tok_embeddings(tokens)
-    h = h.to(torch.bfloat16)
 
     freqs_cis = self.freqs_cis[input_pos]
     #freqs_cis = self.freqs_cis[start_pos : start_pos + seqlen]
