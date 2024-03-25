@@ -204,8 +204,6 @@ class PetLlama:
         print(f"\n==================================  prefill_caches: {prefill_caches} \n")
 
         # insert
-        
-        
         # cache
         n_local_kv_heads = params.n_heads
         head_dim = params.dim // params.n_heads
