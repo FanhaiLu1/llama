@@ -58,5 +58,5 @@ class KVCacheGenerate:
     def empty(cls, shape, device):
         k = torch.zeros(shape, device=device, dtype=torch.bfloat16)
         v = torch.zeros(shape, device=device, dtype=torch.bfloat16)
-        return cls(k, v, 0, device)
+        return cls(k, v, 0)
         
