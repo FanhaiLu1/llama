@@ -190,7 +190,7 @@ class PetLlama:
         input_indexes = torch.arange(0, min_prompt_len)
         mask = torch.full((1, 1, min_prompt_len, min_prompt_len), 
                      float('-inf'), dtype=torch.bfloat16)
-        mask = torch.triu(mask, k=1)
+        mask = torch.triu(mask, diagonal=1)
         prefill_tokens = tokens[:, 0:min_prompt_len]
 
         logits = self.model.forward(prefill_tokens, input_indexes, prefill_caches, mask)
