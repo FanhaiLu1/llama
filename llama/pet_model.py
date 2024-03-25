@@ -180,12 +180,12 @@ class Transformer(nn.Module):
     freqs_cis = self.freqs_cis[input_pos]
     #freqs_cis = self.freqs_cis[start_pos : start_pos + seqlen]
 
-    for layer in self.layers:
+    for layer, cache in zip(self.layers, caches):
         h = layer(
             h,
             freqs_cis,
             mask,
-            caches
+            cache
         )
 
     h = self.norm(h)
