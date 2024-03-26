@@ -155,7 +155,9 @@ def apply_rotary_emb(
     """
     xq_ = torch.view_as_complex(xq.float().reshape(*xq.shape[:-1], -1, 2))
     xk_ = torch.view_as_complex(xk.float().reshape(*xk.shape[:-1], -1, 2))
+    print(f"\n================================== ---> before broadcast freqs_cis: {freqs_cis} \n")
     freqs_cis = reshape_for_broadcast(freqs_cis, xq_)
+    print(f"\n================================== ---> after broadcast  freqs_cis: {freqs_cis} \n")
     xq_out = torch.view_as_real(xq_ * freqs_cis).flatten(3)
     xk_out = torch.view_as_real(xk_ * freqs_cis).flatten(3)
     return xq_out.type_as(xq), xk_out.type_as(xk)
@@ -470,6 +472,7 @@ class Transformer(nn.Module):
         h = self.tok_embeddings(tokens)
         self.freqs_cis = self.freqs_cis.to(h.device)
         freqs_cis = self.freqs_cis[start_pos : start_pos + seqlen]
+        print(f"\n================================== ---> seqlen {seqlen} freqs_cis: {freqs_cis} \n")
 
         mask = None
         if seqlen > 1:
