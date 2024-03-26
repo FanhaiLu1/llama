@@ -39,6 +39,7 @@ def main(
     prompts: List[str] = [
         # For these prompts, the expected answer is the natural continuation of the prompt
         "I believe the meaning of life is",
+        "Write a book about a boy and dog",
     ]
     results = generator.text_completion(
         prompts,
